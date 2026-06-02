@@ -99,6 +99,18 @@ def iter_files(paths: Iterable[Path], root: Optional[Path] = None) -> Iterable[T
                 # If this is a nested file, use the relative path from the root directory as the name
                 yield str(path.relative_to(root)), path
 
+def _file_key(file_info: response.File) -> str:
+    """
+    Returns the per-file upload key, checking both ``uid`` (older FileSender servers)
+    and ``puid`` (newer FileSender servers). The field was renamed in
+    https://github.com/filesender/filesender/pull/2429.
+    """
+    if "uid" in file_info:
+        return file_info["uid"]
+    if "puid" in file_info:
+        return file_info["puid"]
+    raise Exception(f"File response for {file_info['name']!r} has neither 'uid' nor 'puid' field")
+
 class EndpointHandler:
     base: str
 
@@ -292,7 +304,7 @@ class FileSenderClient:
             self.http_client.build_request(
                 "PUT",
                 self.urls.file(file_info['id']),
-                params={"key": file_info["uid"]},
+                params={"key": _file_key(file_info)},
                 json=body,
             )
         )
@@ -322,7 +334,7 @@ class FileSenderClient:
             task_limit=self.concurrent_chunks
         )
        ).stream() as streamer:
-            async for _ in tqdm(streamer, total=math.ceil(file_info["size"] / self.chunk_size), desc=file_info["name"]): # type: ignore
+            async for _ in tqdm(streamer, total=math.ceil(int(file_info["size"]) / self.chunk_size), desc=file_info["name"]):
                 pass
 
     async def _upload_chunk(
@@ -338,7 +350,7 @@ class FileSenderClient:
             self.http_client.build_request(
                 "PUT",
                 self.urls.chunk(file_info["id"], offset),
-                params={"key": file_info["uid"]},
+                params={"key": _file_key(file_info)},
                 content=chunk,
                 headers={
                     "Content-Type": "application/octet-stream",

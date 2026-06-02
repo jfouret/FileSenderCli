@@ -1,13 +1,21 @@
+from __future__ import annotations
 from typing import List
 from typing_extensions import TypedDict
 
-class File(TypedDict):
+class _FileBase(TypedDict):
     id: int
     transfer_id: int
-    uid: str
     name: str
-    size: int
+    size: int | str  # some FileSender servers return this as a string
     sha1: str
+
+class _FileWithUid(_FileBase):
+    uid: str
+
+class _FileWithPuid(_FileBase):
+    puid: str
+
+File = _FileWithUid | _FileWithPuid
 
 class Date(TypedDict):
     raw: int
