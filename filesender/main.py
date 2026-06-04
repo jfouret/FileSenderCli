@@ -14,10 +14,10 @@ from asyncio import run
 from importlib.metadata import version
 from rich.logging import RichHandler
 from filesender.log import LogParam, LogLevel, configure_extra_levels
+from filesender.response_types import Guest, Transfer
 
 logger = logging.getLogger(__name__)
 
-from filesender.response_types import Guest, Transfer
 
 P = ParamSpec("P")
 T = TypeVar("T")

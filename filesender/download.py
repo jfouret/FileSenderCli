@@ -35,7 +35,7 @@ def files_from_page(content: bytes) -> Iterable[DownloadFile]:
     """
     for file in BeautifulSoup(content, "html.parser").find_all(class_="file"):
         yield {
-            "client_entropy": file.attrs[f"data-client-entropy"],
+            "client_entropy": file.attrs["data-client-entropy"],
             "encrypted": file.attrs["data-encrypted"],
             "encrypted_size": _opt_int(file.attrs["data-encrypted-size"]),
             "fileaead": file.attrs["data-fileaead"],
