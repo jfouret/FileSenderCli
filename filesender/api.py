@@ -10,11 +10,18 @@ import math
 import aiofiles
 from aiostream import stream
 from contextlib import contextmanager
-from tenacity import RetryCallState, retry, stop_after_attempt, wait_fixed, retry_if_exception
+from tenacity import (
+    RetryCallState,
+    retry,
+    stop_after_attempt,
+    wait_fixed,
+    retry_if_exception,
+)
 import logging
 from tqdm.asyncio import tqdm
 
 logger = logging.getLogger(__name__)
+
 
 def should_retry(e: BaseException) -> bool:
     """
@@ -23,7 +30,7 @@ def should_retry(e: BaseException) -> bool:
     """
     if isinstance(e, ReadError):
         # Seems to be just a bug in the backend
-        # https://github.com/encode/httpx/discussions/2941 
+        # https://github.com/encode/httpx/discussions/2941
         return True
     elif isinstance(e, HTTPStatusError) and e.response.status_code == 500:
         message = e.response.json()["message"]
@@ -44,13 +51,17 @@ def url_without_scheme(url: str) -> str:
     """
     return unquote(urlunparse(urlparse(url)._replace(scheme="")).lstrip("/"))
 
+
 def exception_to_message(e: BaseException) -> str:
     if isinstance(e, HTTPStatusError):
         return f"Request failed with content {e.response.text} for request {e.request.method} {e.request.url}."
     elif isinstance(e, RequestError):
-        return f"Request failed for request {e.request.method} {e.request.url}. {repr(e)}"
+        return (
+            f"Request failed for request {e.request.method} {e.request.url}. {repr(e)}"
+        )
     else:
         return repr(e)
+
 
 @contextmanager
 def raise_status():
@@ -62,6 +73,7 @@ def raise_status():
         yield
     except BaseException as e:
         raise Exception(exception_to_message(e)) from e
+
 
 async def yield_chunks(path: Path, chunk_size: int) -> AsyncIterator[Tuple[bytes, int]]:
     """
@@ -78,7 +90,10 @@ async def yield_chunks(path: Path, chunk_size: int) -> AsyncIterator[Tuple[bytes
             yield chunk, offset
             offset += len(chunk)
 
-def iter_files(paths: Iterable[Path], root: Optional[Path] = None) -> Iterable[Tuple[str, Path]]:
+
+def iter_files(
+    paths: Iterable[Path], root: Optional[Path] = None
+) -> Iterable[Tuple[str, Path]]:
     """
     Recursively yields (name, path) tuples for all files included in the input path, or that are children of these paths
     """
@@ -87,10 +102,10 @@ def iter_files(paths: Iterable[Path], root: Optional[Path] = None) -> Iterable[T
             # Recurse into directories
             if root is None:
                 # If this is a top level directory, then its parent becomes the root
-                yield from iter_files(path.iterdir(), root = path.parent)
+                yield from iter_files(path.iterdir(), root=path.parent)
             else:
                 # Preserve the same root when recursing
-                yield from iter_files(path.iterdir(), root = root)
+                yield from iter_files(path.iterdir(), root=root)
         else:
             if root is None:
                 # If this is a top level file, just use the filename directly
@@ -98,6 +113,7 @@ def iter_files(paths: Iterable[Path], root: Optional[Path] = None) -> Iterable[T
             else:
                 # If this is a nested file, use the relative path from the root directory as the name
                 yield str(path.relative_to(root)), path
+
 
 def _file_key(file_info: response.File) -> str:
     """
@@ -109,7 +125,10 @@ def _file_key(file_info: response.File) -> str:
         return file_info["uid"]
     if "puid" in file_info:
         return file_info["puid"]
-    raise Exception(f"File response for {file_info['name']!r} has neither 'uid' nor 'puid' field")
+    raise Exception(
+        f"File response for {file_info['name']!r} has neither 'uid' nor 'puid' field"
+    )
+
 
 class EndpointHandler:
     base: str
@@ -118,7 +137,9 @@ class EndpointHandler:
         # Backwards compatibility to support the old way of specifying the base URL
         base = base.rstrip("/")
         if base.endswith("/rest.php"):
-            logger.warning("The base URL should not include /rest.php. This will no longer be supported in a future version.")
+            logger.warning(
+                "The base URL should not include /rest.php. This will no longer be supported in a future version."
+            )
             base = base.removesuffix("/rest.php")
         self.base = base
 
@@ -145,6 +166,7 @@ class EndpointHandler:
 
     def server_info(self) -> str:
         return f"{self.api()}/info"
+
 
 class FileSenderClient:
     """
@@ -197,7 +219,6 @@ class FileSenderClient:
         self.concurrent_chunks = concurrent_chunks
         self.concurrent_files = concurrent_files
 
-
     async def prepare(self) -> None:
         """
         Checks that the chunk size is appropriate and/or sets the chunk size based on the server info.
@@ -232,7 +253,7 @@ class FileSenderClient:
         retry=retry_if_exception(should_retry),
         wait=wait_fixed(0.1),
         stop=stop_after_attempt(5),
-        before_sleep=on_retry
+        before_sleep=on_retry,
     )
     async def _sign_send_inner(self, request: Request) -> Any:
         # Needs to be a separate function to handle retry policy correctly
@@ -303,7 +324,7 @@ class FileSenderClient:
         await self._sign_send(
             self.http_client.build_request(
                 "PUT",
-                self.urls.file(file_info['id']),
+                self.urls.file(file_info["id"]),
                 params={"key": _file_key(file_info)},
                 json=body,
             )
@@ -323,18 +344,24 @@ class FileSenderClient:
         if self.chunk_size is None:
             raise Exception(".prepare() has not been called!")
 
-        async def _task_generator(chunk_size: int) -> AsyncIterator[Tuple[response.File, int, bytes]]:
+        async def _task_generator(
+            chunk_size: int,
+        ) -> AsyncIterator[Tuple[response.File, int, bytes]]:
             async for chunk, offset in yield_chunks(path, chunk_size):
                 yield file_info, offset, chunk
 
         async with (
             stream.starmap(
-            _task_generator(self.chunk_size),
-            self._upload_chunk, # type: ignore
-            task_limit=self.concurrent_chunks
-        )
-       ).stream() as streamer:
-            async for _ in tqdm(streamer, total=math.ceil(int(file_info["size"]) / self.chunk_size), desc=file_info["name"]):
+                _task_generator(self.chunk_size),
+                self._upload_chunk,  # type: ignore
+                task_limit=self.concurrent_chunks,
+            )
+        ).stream() as streamer:
+            async for _ in tqdm(
+                streamer,
+                total=math.ceil(int(file_info["size"]) / self.chunk_size),
+                desc=file_info["name"],
+            ):
                 pass
 
     async def _upload_chunk(
@@ -384,14 +411,10 @@ class FileSenderClient:
         )
         return files_from_page(download_page.content)
 
-    async def download_files(
-        self,
-        token: str,
-        out_dir: Path
-    ) -> None:
+    async def download_files(self, token: str, out_dir: Path) -> None:
         """
         Downloads all files for a transfer.
-         
+
         Params:
             token: Obtained from the transfer email. The same as [`GuestAuth`][filesender.GuestAuth]'s `guest_token`.
             out_dir: The path to write the downloaded files.
@@ -406,7 +429,9 @@ class FileSenderClient:
 
         # Each file is downloaded in parallel
         # Pyright messes this up
-        await stream.starmap(_download_args(), self.download_file, task_limit=self.concurrent_files) # type: ignore
+        await stream.starmap(
+            _download_args(), self.download_file, task_limit=self.concurrent_files
+        )  # type: ignore
 
     async def download_file(
         self,
@@ -414,7 +439,7 @@ class FileSenderClient:
         file_id: int,
         out_dir: Path,
         file_size: Union[int, float, None] = None,
-        file_name: Optional[str] = None
+        file_name: Optional[str] = None,
     ) -> None:
         """
         Downloads a single file.
@@ -442,9 +467,13 @@ class FileSenderClient:
             file_path.parent.mkdir(parents=True, exist_ok=True)
             chunk_size = 8192
             chunk_size_mb = chunk_size / 1024 / 1024
-            with tqdm(desc=file_name, unit="MB", total=None if file_size is None else int(file_size / 1024 / 1024)) as progress:
+            with tqdm(
+                desc=file_name,
+                unit="MB",
+                total=None if file_size is None else int(file_size / 1024 / 1024),
+            ) as progress:
                 async with aiofiles.open(out_dir / file_name, "wb") as fp:
-                    # We can't add the total here, because we don't know it: 
+                    # We can't add the total here, because we don't know it:
                     # https://github.com/filesender/filesender/issues/1555
                     async for chunk in res.aiter_raw(chunk_size=chunk_size):
                         await fp.write(chunk)
@@ -472,7 +501,10 @@ class FileSenderClient:
             : See [`Transfer`][filesender.response_types.Transfer]
         """
         files_by_name = {key: value for key, value in iter_files(files)}
-        file_info: List[request.File] = [{"name": name, "size": file.stat().st_size} for name, file in files_by_name.items()]
+        file_info: List[request.File] = [
+            {"name": name, "size": file.stat().st_size}
+            for name, file in files_by_name.items()
+        ]
         transfer = await self.create_transfer(
             {
                 "files": file_info,
@@ -488,14 +520,19 @@ class FileSenderClient:
 
         async def _upload_args() -> AsyncIterator[Tuple[response.File, Path]]:
             for file in transfer["files"]:
-            # Skip folders, which aren't real
+                # Skip folders, which aren't real
                 if file["name"] in files_by_name:
                     # Pyright seems to not understand that some fields are optional
                     yield file, files_by_name[file["name"]]
 
         # Upload each file in parallel
         # Pyright doesn't map the type signatures correctly here
-        await stream.starmap(_upload_args(), self.upload_complete, ordered=False, task_limit=self.concurrent_files) # type: ignore
+        await stream.starmap(
+            _upload_args(),
+            self.upload_complete,
+            ordered=False,
+            task_limit=self.concurrent_files,
+        )  # type: ignore
 
         # Mark the transfer as complete
         transfer = await self.update_transfer(

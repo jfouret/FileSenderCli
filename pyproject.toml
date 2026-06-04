@@ -7,7 +7,7 @@ name = "filesender-client"
 description = "FileSender Python CLI and API client"
 version = "2.1.1"
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 license = {text = "BSD-3-Clause"}
 classifiers = [
     "Programming Language :: Python :: 3",
@@ -60,3 +60,9 @@ typeCheckingMode = "strict"
 exclude = ["venv", "test"]
 reportUnknownMemberType = false
 reportUnknownVariableType = false
+
+[dependency-groups]
+dev = [
+    "pyright>=1.1.410",
+    "ruff>=0.15.15",
+]
