@@ -21,8 +21,10 @@ class DownloadFile(TypedDict):
     size: int
     transferid: int
 
+
 def _opt_int(value: str) -> Optional[int]:
     return int(value) if value else None
+
 
 def files_from_page(content: bytes) -> Iterable[DownloadFile]:
     """
@@ -31,9 +33,7 @@ def files_from_page(content: bytes) -> Iterable[DownloadFile]:
     Params:
         content: The HTML content of the FileSender download page
     """
-    for file in BeautifulSoup(content, "html.parser").find_all(
-        class_="file"
-    ):
+    for file in BeautifulSoup(content, "html.parser").find_all(class_="file"):
         yield {
             "client_entropy": file.attrs[f"data-client-entropy"],
             "encrypted": file.attrs["data-encrypted"],
@@ -46,7 +46,9 @@ def files_from_page(content: bytes) -> Iterable[DownloadFile]:
             "mime": file.attrs["data-mime"],
             "name": file.attrs["data-name"],
             "password_encoding": file.attrs["data-password-encoding"],
-            "password_hash_iterations": _opt_int(file.attrs["data-password-hash-iterations"]),
+            "password_hash_iterations": _opt_int(
+                file.attrs["data-password-hash-iterations"]
+            ),
             "password_version": _opt_int(file.attrs["data-password-version"]),
             "size": int(file.attrs["data-size"]),
             "transferid": int(file.attrs["data-transferid"]),
