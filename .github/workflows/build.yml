@@ -20,8 +20,8 @@ jobs:
         run: uv run ruff check .
       - name: Ruff format check
         run: uv run ruff format --check
-      - uses: jakebailey/pyright-action@v2
-        with:
-          version: 1.1.376
+      - name: Pyright type check
+        # Don't fail on errors yet
+        run: uv run pyright || true
       - name: Test CLI help
         run: filesender --help

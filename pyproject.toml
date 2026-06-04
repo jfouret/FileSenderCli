@@ -63,5 +63,6 @@ reportUnknownVariableType = false
 
 [dependency-groups]
 dev = [
+    "pyright>=1.1.410",
     "ruff>=0.15.15",
 ]
