@@ -95,6 +95,8 @@ class GuestAuth(Auth):
 
     guest_token: str
     security_token: Optional[str] = None
+    # The CSRF token is configurable per-server, so we need to store it if the server provides it, but it isn't mandatory
+    # See https://github.com/filesender/filesender/issues/2732#issuecomment-4609996918
     csrf_token: Optional[str] = None
 
     async def prepare(self, client: AsyncClient):
@@ -113,15 +115,15 @@ class GuestAuth(Auth):
             for cookie in client.cookies.jar:
                 if cookie.name.lower() == "csrfptoken":
                     self.csrf_token = cookie.value
-        if self.csrf_token is None:
-            logger.warning("No CSRF token could be found!")
 
     def sign(self, request: SignType, client: AsyncClient) -> SignType:
         request.url = request.url.copy_add_param("vid", self.guest_token)
-        if self.security_token is None or self.csrf_token is None:
+        if self.security_token is None:
             raise Exception(
                 ".prepare() must be called on the GuestAuth before it is used to sign requests"
             )
         request.headers["X-Filesender-Security-Token"] = self.security_token
-        request.headers["csrfptoken"] = self.csrf_token
+        if self.csrf_token is not None:
+            # If we have a CSRF token, the server requires it so we should use it
+            request.headers["csrfptoken"] = self.csrf_token
         return request

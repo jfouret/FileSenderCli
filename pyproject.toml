@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "filesender-client"
 description = "FileSender Python CLI and API client"
-version = "2.1.1"
+version = "2.1.2"
 readme = "README.md"
 requires-python = ">=3.10"
 license = {text = "BSD-3-Clause"}
@@ -26,14 +26,26 @@ dependencies = [
     "typing_extensions",
     "tenacity",
     "tqdm",
-    "click>=8.1.8",
+    # Click 8.2 introduced a breaking change (https://click.palletsprojects.com/en/stable/support-multiple-versions/#paramtype-methods-require-ctx)
+    "click>=8.2",
 ]
 
 [tool.setuptools.packages.find]
 exclude = ["site", "test"]
 
-[project.optional-dependencies]
+[project.scripts]
+filesender = "filesender.main:app"
+
+[tool.pyright]
+typeCheckingMode = "strict"
+exclude = ["venv", "test"]
+reportUnknownMemberType = false
+reportUnknownVariableType = false
+
+[dependency-groups]
 dev = [
+    "pyright>=1.1.410",
+    "ruff>=0.15.15",
     "pytest",
     "pytest_asyncio",
     "mkdocs",
@@ -49,20 +61,5 @@ dev = [
     "jupyter",
     "notebook<7",
     "nbconvert",
-    "jupyter_contrib_nbextensions"
-]
-
-[project.scripts]
-filesender = "filesender.main:app"
-
-[tool.pyright]
-typeCheckingMode = "strict"
-exclude = ["venv", "test"]
-reportUnknownMemberType = false
-reportUnknownVariableType = false
-
-[dependency-groups]
-dev = [
-    "pyright>=1.1.410",
-    "ruff>=0.15.15",
+    "jupyter_contrib_nbextensions",
 ]
