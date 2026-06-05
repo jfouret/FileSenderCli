@@ -2,6 +2,7 @@ from __future__ import annotations
 from typing import List
 from typing_extensions import TypedDict
 
+
 class _FileBase(TypedDict):
     id: int
     transfer_id: int
@@ -9,22 +10,28 @@ class _FileBase(TypedDict):
     size: int | str  # some FileSender servers return this as a string
     sha1: str
 
+
 class _FileWithUid(_FileBase):
     uid: str
+
 
 class _FileWithPuid(_FileBase):
     puid: str
 
+
 File = _FileWithUid | _FileWithPuid
+
 
 class Date(TypedDict):
     raw: int
     formatted: str
 
+
 class TrackingError(TypedDict):
     type: str
     date: Date
     details: str
+
 
 class Recipient(TypedDict):
     id: int
@@ -36,6 +43,7 @@ class Recipient(TypedDict):
     options: None
     download_url: str
     errors: List[TrackingError]
+
 
 class Transfer(TypedDict):
     id: int
@@ -52,6 +60,7 @@ class Transfer(TypedDict):
     roundtriptoken: str
     salt: str
 
+
 class Guest(TypedDict):
     id: int
     user_id: str
@@ -67,11 +76,13 @@ class Guest(TypedDict):
     expires: Date
     errors: List[TrackingError]
 
+
 class Author(TypedDict):
     type: str
     id: str
     ip: str
     email: str
+
 
 class Target(TypedDict):
     type: str
@@ -80,11 +91,13 @@ class Target(TypedDict):
     size: int
     email: str
 
+
 class AuditLog(TypedDict):
     date: Date
     event: str
     author: Author
     target: Target
+
 
 class ServerInfo(TypedDict):
     url: str

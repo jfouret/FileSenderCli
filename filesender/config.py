@@ -4,10 +4,12 @@ from typing import TypedDict
 
 CONFIG_PATH = Path.home() / ".filesender" / "filesender.py.ini"
 
+
 class Defaults(TypedDict, total=False):
     base_url: str
     username: str
     apikey: str
+
 
 def get_defaults() -> Defaults:
     defaults: Defaults = {}
@@ -20,6 +22,5 @@ def get_defaults() -> Defaults:
             defaults["username"] = parser.get("user", "username")
         if parser.has_option("user", "apikey"):
             defaults["apikey"] = parser.get("user", "apikey")
-
 
     return defaults

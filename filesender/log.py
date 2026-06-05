@@ -3,6 +3,7 @@ from click import ParamType, Context, Parameter
 from enum import Enum
 import logging
 
+
 class LogLevel(Enum):
     NOTSET = 0
     DEBUG = 10
@@ -21,6 +22,7 @@ class LogLevel(Enum):
         """
         logging.addLevelName(self.value, self.name)
 
+
 def configure_extra_levels():
     """
     Configures the logging module to understand the additional log levels
@@ -28,10 +30,16 @@ def configure_extra_levels():
     for level in (LogLevel.VERBOSE, LogLevel.FEEDBACK):
         level.configure_label()
 
+
 class LogParam(ParamType):
     name = "LogParam"
 
-    def convert(self, value: Union[int, str], param: Union[Parameter, None], ctx: Union[Context, None]) -> int:
+    def convert(
+        self,
+        value: Union[int, str],
+        param: Union[Parameter, None],
+        ctx: Union[Context, None],
+    ) -> int:
         if isinstance(value, int):
             return value
 

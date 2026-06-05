@@ -1,11 +1,13 @@
 from typing import List
 from typing_extensions import TypedDict, NotRequired
 
+
 class File(TypedDict):
     name: str
     size: int
     mime_type: NotRequired[str]
     cid: NotRequired[str]
+
 
 class TransferOptions(TypedDict, total=False):
     email_me_copies: bool
@@ -27,19 +29,25 @@ class TransferOptions(TypedDict, total=False):
     web_notification_when_upload_is_complete: bool
     verify_email_to_download: bool
 
-PartialTransfer = TypedDict("PartialTransfer", {
-    "options": NotRequired[TransferOptions],
-    "expires": NotRequired[int],
-    "subject": NotRequired[str],
-    "message": NotRequired[str],
-    # The below fields are not required when uploading to a voucher
-    "recipients": NotRequired[List[str]],
-    # We need to use the expression syntax for TypedDict because `from` is a Python keyword
-    "from": NotRequired[str]
-})
+
+PartialTransfer = TypedDict(
+    "PartialTransfer",
+    {
+        "options": NotRequired[TransferOptions],
+        "expires": NotRequired[int],
+        "subject": NotRequired[str],
+        "message": NotRequired[str],
+        # The below fields are not required when uploading to a voucher
+        "recipients": NotRequired[List[str]],
+        # We need to use the expression syntax for TypedDict because `from` is a Python keyword
+        "from": NotRequired[str],
+    },
+)
+
 
 class Transfer(PartialTransfer):
     files: List[File]
+
 
 class TransferUpdate(TypedDict):
     complete: NotRequired[bool]
@@ -47,8 +55,10 @@ class TransferUpdate(TypedDict):
     extend_expiry_date: NotRequired[bool]
     remind: NotRequired[bool]
 
+
 class FileUpdate(TypedDict):
     complete: NotRequired[bool]
+
 
 class GuestOptions(TypedDict, total=False):
     valid_only_one_time: bool
@@ -59,16 +69,21 @@ class GuestOptions(TypedDict, total=False):
     email_guest_created_receipt: bool
     email_guest_expired: bool
 
+
 class GuestAllOptions(TypedDict):
     guest: NotRequired[GuestOptions]
     transfer: NotRequired[TransferOptions]
 
-Guest = TypedDict("Guest", {
-    "recipient": str,
-    "from": str,
-    "subject": NotRequired[str],
-    "message": NotRequired[str],
-    # See https://github.com/filesender/filesender/issues/1772
-    "options": NotRequired[GuestAllOptions],
-    "expires": NotRequired[int]
-})
+
+Guest = TypedDict(
+    "Guest",
+    {
+        "recipient": str,
+        "from": str,
+        "subject": NotRequired[str],
+        "message": NotRequired[str],
+        # See https://github.com/filesender/filesender/issues/1772
+        "options": NotRequired[GuestAllOptions],
+        "expires": NotRequired[int],
+    },
+)

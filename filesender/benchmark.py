@@ -1,6 +1,7 @@
 """
 Tools for benchmarking the FileSender client
 """
+
 import resource
 import asyncio
 import time
@@ -15,16 +16,19 @@ import multiprocessing as mp
 from filesender.api import FileSenderClient
 from filesender.auth import UserAuth
 
+
 @dataclass
 class BenchResult:
     """
     The result of a single benchmark execution
     """
+
     time: float
     "Memory in fractional sections"
     memory: int
     "Memory in bytes"
     concurrent_chunks: int
+
 
 @contextmanager
 def make_tempfile(size: int, **kwargs: Any) -> Generator[Path, Any, None]:
@@ -37,12 +41,15 @@ def make_tempfile(size: int, **kwargs: Any) -> Generator[Path, Any, None]:
         file.close()
         yield Path(file.name)
         path.unlink()
-    
+
+
 @contextmanager
-def make_tempfiles(size: int, n: int = 2, **kwargs: Any) -> Generator[List[Path], Any, None]:
+def make_tempfiles(
+    size: int, n: int = 2, **kwargs: Any
+) -> Generator[List[Path], Any, None]:
     """
     Makes `n` temporary files of size `size` and yields them as a list via context manager.
-    
+
     Example:
         ```python
         with make_tempfiles(size=100_000_000) as files:
@@ -55,10 +62,15 @@ def make_tempfiles(size: int, n: int = 2, **kwargs: Any) -> Generator[List[Path]
         kwargs: Additional args to pass to [tempfile.NamedTemporaryFile]
     """
     with ExitStack() as stack:
-        files = [stack.enter_context(make_tempfile(size=size, **kwargs)) for _ in range(n)]
+        files = [
+            stack.enter_context(make_tempfile(size=size, **kwargs)) for _ in range(n)
+        ]
         yield files
 
-async def upload_capture_mem(client_args: Dict[str, Any], upload_args: Dict[str, Any]) -> BenchResult:
+
+async def upload_capture_mem(
+    client_args: Dict[str, Any], upload_args: Dict[str, Any]
+) -> BenchResult:
     """
     Performs an upload, and returns the memory usage in doing so
     """
@@ -69,14 +81,23 @@ async def upload_capture_mem(client_args: Dict[str, Any], upload_args: Dict[str,
     end = time.monotonic()
     return BenchResult(
         memory=resource.getrusage(resource.RUSAGE_SELF).ru_maxrss,
-        time = end - start,
-        concurrent_chunks=client_args["concurrent_chunks"]
+        time=end - start,
+        concurrent_chunks=client_args["concurrent_chunks"],
     )
+
 
 def upload_capture_mem_sync(*args: Any) -> BenchResult:
     return asyncio.run(upload_capture_mem(*args))
 
-def benchmark(paths: List[Path], limit: int, base_url: str, username: str, apikey: str, recipient: str) -> List[BenchResult]:
+
+def benchmark(
+    paths: List[Path],
+    limit: int,
+    base_url: str,
+    username: str,
+    apikey: str,
+    recipient: str,
+) -> List[BenchResult]:
     """
     Runs a test upload using a variety of semaphore settings, and return one result for each.
 
@@ -91,16 +112,19 @@ def benchmark(paths: List[Path], limit: int, base_url: str, username: str, apike
     # We use multiprocessing so that each benchmark runs in a separate Python interpreter with a separate RSS
     # The spawn context ensures that no memory is shared with the controlling process
     with mp.get_context("spawn").Pool(processes=1) as pool:
-        args: List[Tuple[Any, ...]] = [] 
+        args: List[Tuple[Any, ...]] = []
         for concurrent_chunks in range(1, limit):
-            args.append(({
-                    "base_url": base_url,
-                    "auth": UserAuth(api_key=apikey, username=username),
-                    "concurrent_chunks": concurrent_chunks,
-                },
-                {
-                    "files": paths,
-                    "transfer_args": {"recipients": [recipient], "from": username},
-                }
-            ))
+            args.append(
+                (
+                    {
+                        "base_url": base_url,
+                        "auth": UserAuth(api_key=apikey, username=username),
+                        "concurrent_chunks": concurrent_chunks,
+                    },
+                    {
+                        "files": paths,
+                        "transfer_args": {"recipients": [recipient], "from": username},
+                    },
+                )
+            )
         return pool.starmap(upload_capture_mem_sync, args)
