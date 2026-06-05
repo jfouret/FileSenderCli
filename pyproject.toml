@@ -33,8 +33,19 @@ dependencies = [
 [tool.setuptools.packages.find]
 exclude = ["site", "test"]
 
-[tool.uv]
-dev-dependencies = [
+[project.scripts]
+filesender = "filesender.main:app"
+
+[tool.pyright]
+typeCheckingMode = "strict"
+exclude = ["venv", "test"]
+reportUnknownMemberType = false
+reportUnknownVariableType = false
+
+[dependency-groups]
+dev = [
+    "pyright>=1.1.410",
+    "ruff>=0.15.15",
     "pytest",
     "pytest_asyncio",
     "mkdocs",
@@ -50,20 +61,5 @@ dev-dependencies = [
     "jupyter",
     "notebook<7",
     "nbconvert",
-    "jupyter_contrib_nbextensions"
-]
-
-[project.scripts]
-filesender = "filesender.main:app"
-
-[tool.pyright]
-typeCheckingMode = "strict"
-exclude = ["venv", "test"]
-reportUnknownMemberType = false
-reportUnknownVariableType = false
-
-[dependency-groups]
-dev = [
-    "pyright>=1.1.410",
-    "ruff>=0.15.15",
+    "jupyter_contrib_nbextensions",
 ]
