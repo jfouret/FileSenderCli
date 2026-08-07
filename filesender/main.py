@@ -268,6 +268,11 @@ async def upload(
     transfer_args: request.PartialTransfer = {
         "recipients": recipients,
         "from": username,
+        "options": {
+            "get_a_link": False,
+            "add_me_to_recipients": True,
+            "email_download_complete": True,
+        },
     }
     if aup_checked:
         transfer_args["aup_checked"] = True
